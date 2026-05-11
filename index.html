@@ -291,13 +291,22 @@
     .card-bg {
       border-radius: 10px;
       padding: var(--spacing-md);
+      background: #f7f7f5;
     }
-    .card-bg-0 { background: rgba(245, 240, 232, 0.7); }
-    .card-bg-1 { background: rgba(194, 240, 232, 0.7); }
-    .card-bg-2 { background: rgba(248, 208, 224, 0.7); }
-    .card-bg-3 { background: rgba(212, 245, 130, 0.7); }
-    .card-bg-4 { background: rgba(208, 200, 248, 0.7); }
-    .card-bg-5 { background: rgba(248, 200, 168, 0.7); }
+    .card-bg-0 { background: #f7f7f5; }
+    .card-bg-1 { background: #f7f7f5; }
+    .card-bg-2 { background: #f7f7f5; }
+    .card-bg-3 { background: #f7f7f5; }
+    .card-bg-4 { background: #f7f7f5; }
+    .card-bg-5 { background: #f7f7f5; }
+
+    /* 태그별 색상 */
+    .tag-color-lime   { background: rgba(212, 245, 130, 0.55); color: #3a5c00; }
+    .tag-color-mint   { background: rgba(194, 240, 232, 0.65); color: #0a5247; }
+    .tag-color-lilac  { background: rgba(208, 200, 248, 0.65); color: #3d2d8a; }
+    .tag-color-cream  { background: rgba(245, 240, 232, 0.9);  color: #6b4f2a; border: 1px solid rgba(0,0,0,0.08); }
+    .tag-color-pink   { background: rgba(248, 208, 224, 0.65); color: #7a2048; }
+    .tag-color-coral  { background: rgba(248, 200, 168, 0.65); color: #7a3010; }
 
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(12px); }
@@ -774,11 +783,37 @@
 
 <script>
   // ⚠️ 여기에 본인의 구글 시트 CSV URL을 붙여넣으세요!
-  const SHEET_CSV_URL = 'YOUR_GOOGLE_SHEET_CSV_URL_HERE';
+  const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRvjHKAmnbrJbZ7HQ9Jf80XiKyd5q6orK2XQW7oetL1FWYAF5RY7z5Sg3YTqBEDXPFDyFZG1YIHhmGc/pub?gid=0&single=true&output=csv';
 
   let allVideos = [];
   let currentVideoKey = '';
   let activeTagFilter = '';
+
+  // 태그별 고정 색상 매핑
+  const TAG_COLORS = {
+    'AI':    'lime',
+    '자동화': 'mint',
+    '심리학': 'lilac',
+    '경제':  'cream',
+    '생산성': 'pink',
+    '독서':  'coral',
+    '커리어': 'lime',
+    '건강':  'mint',
+    '철학':  'lilac',
+    '투자':  'coral',
+  };
+  const COLOR_CYCLE = ['lime','mint','lilac','cream','pink','coral'];
+  const tagColorCache = {};
+  let colorCycleIdx = 0;
+
+  function getTagColor(tag) {
+    if (TAG_COLORS[tag]) return TAG_COLORS[tag];
+    if (!tagColorCache[tag]) {
+      tagColorCache[tag] = COLOR_CYCLE[colorCycleIdx % COLOR_CYCLE.length];
+      colorCycleIdx++;
+    }
+    return tagColorCache[tag];
+  }
 
   async function loadData() {
     document.getElementById('content').innerHTML = `
@@ -821,7 +856,7 @@
     const wrap = document.getElementById('tagFilters');
     if (!allTags.size) { wrap.innerHTML = ''; return; }
     wrap.innerHTML = ['전체', ...allTags].map(t => `
-      <button class="tag-filter ${(t==='전체'&&!activeTagFilter)||(t===activeTagFilter)?'active':''}"
+      <button class="tag-filter ${(t==='전체'&&!activeTagFilter)||(t===activeTagFilter)?'active':''} ${t!=='전체'?'tag-color-'+getTagColor(t):''}"
               onclick="setTagFilter('${t==='전체'?'':t}')">${t}</button>`).join('');
   }
 
@@ -872,7 +907,7 @@
                   ${date?`<span class="card-eyebrow" style="opacity:0.3">·</span><span class="card-eyebrow">${date}</span>`:''}
                 </div>
                 <div class="card-title">${title}</div>
-                ${tags.length?`<div class="card-tags">${tags.map(t=>`<span class="card-tag">${t}</span>`).join('')}</div>`:''}
+                ${tags.length?`<div class="card-tags">${tags.map(t=>`<span class="card-tag tag-color-${getTagColor(t)}">${t}</span>`).join('')}</div>`:''}
               </div>
               <div class="card-footer">
                 <span class="memo-preview">${memo?'↳ '+memo:''}</span>
@@ -930,7 +965,7 @@
 
   function renderPanelTags(tags) {
     document.getElementById('panelTags').innerHTML = tags.map(t=>`
-      <span class="panel-tag">${t}
+      <span class="panel-tag tag-color-${getTagColor(t)}">${t}
         <span class="tag-remove" onclick="removeTag('${t}')">×</span>
       </span>`).join('');
   }
