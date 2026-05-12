@@ -371,8 +371,6 @@
       font-family: var(--font-mono);
       font-size: 10px; font-weight: 400;
       letter-spacing: 0.5px; text-transform: uppercase;
-      background: rgba(0,0,0,0.06);
-      color: var(--color-ink);
       padding: 3px 8px;
       border-radius: var(--rounded-sm);
     }
@@ -406,24 +404,41 @@
 
     .detail-panel {
       position:relative;
-      width:560px; max-width:95vw;
+      width:90vw; max-width:1100px;
       max-height:90vh;
-      background: var(--color-canvas);
+      background: #ffffff;
       border-radius: var(--rounded-lg);
-      overflow-y:auto;
+      overflow:hidden;
       transform: scale(0.95) translateY(12px);
       opacity:0;
       transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), opacity 0.3s;
+      display:flex; flex-direction:column;
     }
     .detail-panel.open {
       transform: scale(1) translateY(0);
       opacity:1;
     }
 
+    /* 2컬럼 레이아웃 */
+    .panel-columns {
+      display:flex; flex:1; overflow:hidden;
+    }
+
+    .panel-left {
+      width:55%; flex-shrink:0;
+      overflow:hidden;
+    }
+
+    .panel-right {
+      flex:1; overflow-y:auto;
+      padding: var(--spacing-xxl);
+      border-left: 1px solid var(--color-hairline);
+    }
+
     .panel-close {
       position:absolute; top: var(--spacing-md); right: var(--spacing-md);
       width:36px; height:36px;
-      background: var(--color-surface-soft); border:none;
+      background: rgba(255,255,255,0.9); border:none;
       border-radius: var(--rounded-full); cursor:pointer;
       font-size:16px; color: var(--color-ink);
       display:flex; align-items:center; justify-content:center;
@@ -432,9 +447,9 @@
     .panel-close:hover { background: var(--color-hairline); }
 
     .panel-thumb {
-      width:100%; aspect-ratio:16/9;
+      width:100%; height:100%;
       object-fit:cover; background: var(--color-surface-soft);
-      display:block;
+      display:block; min-height:280px;
     }
 
     .panel-body { padding: var(--spacing-xxl); }
@@ -530,18 +545,18 @@
     }
     .tag-remove:hover { color:#c00; }
 
-    /* memo section - cream 배경, 넓은 입력창 */
+    /* memo section */
     .memo-block {
-      background: var(--color-block-cream);
+      background: transparent;
       border-radius: var(--rounded-lg);
-      padding: var(--spacing-lg) var(--spacing-xxl);
+      padding: 0;
     }
 
     .memo-textarea {
       width: 100%;
       min-height: 160px;
-      background: rgba(255,255,255,0.65);
-      border: 1px solid rgba(0,0,0,0.10);
+      background: #f1f1f1;
+      border: 1px solid transparent;
       border-radius: var(--rounded-md);
       padding: 14px;
       font-family: var(--font-sans);
@@ -655,8 +670,11 @@
       .grid-wrap { padding: 0 var(--spacing-lg) var(--spacing-xxl); }
       .grid-container { grid-template-columns: 1fr; }
       .detail-panel { width: 95vw; max-height: 85vh; }
-      .panel-body { padding: var(--spacing-lg); }
-      .tag-block, .memo-block { padding: var(--spacing-lg); }
+      .panel-columns { flex-direction: column; }
+      .panel-left { width: 100%; }
+      .panel-thumb { min-height: 200px; }
+      .panel-right { padding: var(--spacing-lg); }
+      .tag-block, .memo-block { padding: 0; }
     }
   </style>
 </head>
@@ -725,42 +743,49 @@
 <!-- OVERLAY + MODAL -->
 <div class="panel-overlay" id="overlay" onclick="handleOverlayClick(event)">
   <div class="detail-panel" id="detailPanel" onclick="event.stopPropagation()">
-  <button class="panel-close" onclick="closePanel()">✕</button>
-  <img class="panel-thumb" id="panelThumb" src="" alt="">
+    <button class="panel-close" onclick="closePanel()">✕</button>
 
-  <div class="panel-body">
-    <div class="panel-eyebrow" id="panelDate"></div>
-    <div class="panel-title" id="panelTitle"></div>
-    <a class="panel-open-btn" id="panelLink" href="#" target="_blank">▶ 유튜브에서 보기</a>
-
-    <!-- 태그 (lime block) -->
-    <div class="panel-section">
-      <div class="panel-section-label">Tags</div>
-      <div class="tag-block">
-        <div class="tags-input-wrap">
-          <input type="text" class="tag-input" id="tagInput"
-                 placeholder="태그 입력 후 Enter 또는 추가..."
-                 onkeydown="if(event.key==='Enter') addTag()">
-          <button class="tag-add-btn" onclick="addTag()">+ 추가</button>
-        </div>
-        <div class="panel-tags" id="panelTags"></div>
+    <div class="panel-columns">
+      <!-- 왼쪽: 썸네일 -->
+      <div class="panel-left">
+        <img class="panel-thumb" id="panelThumb" src="" alt="">
       </div>
-    </div>
 
-    <!-- 메모 (lilac block) -->
-    <div class="panel-section">
-      <div class="panel-section-label">My Notes</div>
-      <div class="memo-block">
-        <textarea class="memo-textarea" id="memoTextarea"
-                  placeholder="이 영상에 대한 생각을 적어보세요..."></textarea>
-        <div class="memo-actions">
-          <button class="memo-save-btn" onclick="saveMemo()">저장</button>
-          <span class="memo-toast" id="memoToast">✓ Saved</span>
+      <!-- 오른쪽: 정보 -->
+      <div class="panel-right">
+        <div class="panel-eyebrow" id="panelDate"></div>
+        <div class="panel-title" id="panelTitle"></div>
+        <a class="panel-open-btn" id="panelLink" href="#" target="_blank">▶ 유튜브에서 보기</a>
+
+        <!-- 태그 -->
+        <div class="panel-section">
+          <div class="panel-section-label">Tags</div>
+          <div class="tag-block">
+            <div class="tags-input-wrap">
+              <input type="text" class="tag-input" id="tagInput"
+                     placeholder="태그 입력 후 Enter 또는 추가..."
+                     onkeydown="if(event.key==='Enter') addTag()">
+              <button class="tag-add-btn" onclick="addTag()">+ 추가</button>
+            </div>
+            <div class="panel-tags" id="panelTags"></div>
+          </div>
+        </div>
+
+        <!-- 메모 -->
+        <div class="panel-section">
+          <div class="panel-section-label">My Notes</div>
+          <div class="memo-block">
+            <textarea class="memo-textarea" id="memoTextarea"
+                      placeholder="이 영상에 대한 생각을 적어보세요..."></textarea>
+            <div class="memo-actions">
+              <button class="memo-save-btn" onclick="saveMemo()">저장</button>
+              <span class="memo-toast" id="memoToast">✓ Saved</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 </div>
 
 <!-- FOOTER -->
