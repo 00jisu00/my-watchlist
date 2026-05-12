@@ -393,23 +393,32 @@
     .card-arrow { font-size: 14px; color: var(--color-ink); opacity:0.3; transition: opacity 0.2s, transform 0.2s; }
     .card:hover .card-arrow { opacity:1; transform: translateX(3px); }
 
-    /* ── DETAIL PANEL ── */
+    /* ── DETAIL PANEL (모달 팝업) ── */
     .panel-overlay {
       position:fixed; inset:0;
       background: rgba(0,0,0,0.55);
       z-index:300; opacity:0;
       pointer-events:none; transition: opacity 0.25s;
+      display:flex; align-items:center; justify-content:center;
+      padding: var(--spacing-lg);
     }
     .panel-overlay.open { opacity:1; pointer-events:all; }
 
     .detail-panel {
-      position:fixed; top:0; right:-540px;
-      width:520px; max-width:95vw; height:100vh;
+      position:relative;
+      width:560px; max-width:95vw;
+      max-height:90vh;
       background: var(--color-canvas);
-      z-index:301; overflow-y:auto;
-      transition: right 0.4s cubic-bezier(0.16,1,0.3,1);
+      border-radius: var(--rounded-lg);
+      overflow-y:auto;
+      transform: scale(0.95) translateY(12px);
+      opacity:0;
+      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), opacity 0.3s;
     }
-    .detail-panel.open { right:0; }
+    .detail-panel.open {
+      transform: scale(1) translateY(0);
+      opacity:1;
+    }
 
     .panel-close {
       position:absolute; top: var(--spacing-md); right: var(--spacing-md);
@@ -645,9 +654,9 @@
       .search-input { width:100%; }
       .grid-wrap { padding: 0 var(--spacing-lg) var(--spacing-xxl); }
       .grid-container { grid-template-columns: 1fr; }
-      .detail-panel { width:100%; }
+      .detail-panel { width: 95vw; max-height: 85vh; }
       .panel-body { padding: var(--spacing-lg); }
-      .summary-block, .tag-block, .memo-block { padding: var(--spacing-lg); }
+      .tag-block, .memo-block { padding: var(--spacing-lg); }
     }
   </style>
 </head>
@@ -713,11 +722,9 @@
   </div>
 </div>
 
-<!-- OVERLAY -->
-<div class="panel-overlay" id="overlay" onclick="closePanel()"></div>
-
-<!-- DETAIL PANEL -->
-<div class="detail-panel" id="detailPanel">
+<!-- OVERLAY + MODAL -->
+<div class="panel-overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="detail-panel" id="detailPanel" onclick="event.stopPropagation()">
   <button class="panel-close" onclick="closePanel()">✕</button>
   <img class="panel-thumb" id="panelThumb" src="" alt="">
 
@@ -753,6 +760,7 @@
       </div>
     </div>
   </div>
+</div>
 </div>
 
 <!-- FOOTER -->
@@ -917,6 +925,15 @@
     document.getElementById('panelDate').textContent = date ? 'YouTube · ' + date : 'YouTube';
     document.getElementById('panelLink').href = url;
 
+    const summaryEl = document.getElementById('panelSummary');
+    if (summary) {
+      const lines = summary.split(/[-·•]\s+/).filter(Boolean);
+      summaryEl.innerHTML = lines.length > 1
+        ? `<ul>${lines.map(l=>`<li>${l.trim()}</li>`).join('')}</ul>`
+        : `<p style="font-family:var(--font-sans);font-size:16px;font-weight:330;line-height:1.8;letter-spacing:-0.14px">${summary}</p>`;
+    } else {
+      summaryEl.innerHTML = `<p class="summary-empty">요약 정보가 없어요</p>`;
+    }
 
     renderPanelTags(saved.tags||[]);
     document.getElementById('memoTextarea').value = saved.memo||'';
@@ -924,6 +941,10 @@
     document.getElementById('overlay').classList.add('open');
     document.getElementById('detailPanel').classList.add('open');
     document.body.style.overflow = 'hidden';
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('overlay')) closePanel();
   }
 
   function closePanel() {
