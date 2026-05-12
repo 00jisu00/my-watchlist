@@ -469,40 +469,22 @@
       margin-bottom: var(--spacing-md);
     }
 
-    .summary-block {
-      background: var(--color-block-cream);
-      border-radius: var(--rounded-lg);
-      padding: var(--spacing-xxl);
-    }
+    .summary-block { display: none; }
+    .summary-empty { display: none; }
 
-    .summary-block ul {
-      padding-left: var(--spacing-md);
-      font-family: var(--font-sans);
-      font-size: 16px; font-weight: 330;
-      line-height: 1.8; letter-spacing: -0.14px;
-      color: var(--color-ink);
-    }
-
-    .summary-empty {
-      font-family: var(--font-sans);
-      font-size: 16px; font-weight: 320;
-      color: var(--color-ink); opacity: 0.4;
-      font-style: italic;
-    }
-
-    /* tag section (lime block) */
+    /* tag section - 배경 제거 */
     .tag-block {
-      background: var(--color-block-lime);
+      background: transparent;
       border-radius: var(--rounded-lg);
-      padding: var(--spacing-lg) var(--spacing-xxl);
+      padding: 0;
     }
 
     .tags-input-wrap { display:flex; gap: var(--spacing-xs); margin-bottom: var(--spacing-md); }
 
     .tag-input {
       flex:1;
-      background: rgba(255,255,255,0.7);
-      border: 1px solid rgba(0,0,0,0.12);
+      background: #f1f1f1;
+      border: 1px solid transparent;
       border-radius: var(--rounded-md);
       padding: 10px 14px;
       font-family: var(--font-sans);
@@ -522,14 +504,12 @@
     }
     .tag-add-btn:hover { opacity:0.8; }
 
-    .panel-tags { display:flex; gap: var(--spacing-xs); flex-wrap:wrap; }
+    .panel-tags { display:flex; gap: var(--spacing-xs); flex-wrap:wrap; margin-top: var(--spacing-xs); }
 
     .panel-tag {
       font-family: var(--font-mono);
       font-size:11px; font-weight:400;
       letter-spacing:0.5px; text-transform:uppercase;
-      background: rgba(255,255,255,0.7);
-      color: var(--color-ink);
       padding: 4px 10px;
       border-radius: var(--rounded-sm);
       display:flex; align-items:center; gap: 6px;
@@ -541,15 +521,16 @@
     }
     .tag-remove:hover { color:#c00; }
 
-    /* memo section (lilac block) */
+    /* memo section - cream 배경, 넓은 입력창 */
     .memo-block {
-      background: var(--color-block-lilac);
+      background: var(--color-block-cream);
       border-radius: var(--rounded-lg);
       padding: var(--spacing-lg) var(--spacing-xxl);
     }
 
     .memo-textarea {
-      width:100%; min-height:120px;
+      width: 100%;
+      min-height: 160px;
       background: rgba(255,255,255,0.65);
       border: 1px solid rgba(0,0,0,0.10);
       border-radius: var(--rounded-md);
@@ -558,11 +539,16 @@
       font-size:15px; font-weight:320; line-height:1.7;
       color: var(--color-ink); outline:none; resize:vertical;
       transition: background 0.15s, border-color 0.15s;
+      box-sizing: border-box;
     }
     .memo-textarea:focus { background:#fff; border-color: var(--color-ink); }
     .memo-textarea::placeholder { color:rgba(0,0,0,0.35); }
 
-    .memo-actions { display:flex; align-items:center; gap: var(--spacing-sm); margin-top: var(--spacing-sm); }
+    .memo-actions {
+      display:flex; align-items:center;
+      justify-content: flex-end;
+      margin-top: var(--spacing-sm);
+    }
 
     .memo-save-btn {
       background: var(--color-primary); color: var(--color-on-primary);
@@ -739,12 +725,6 @@
     <div class="panel-eyebrow" id="panelDate"></div>
     <div class="panel-title" id="panelTitle"></div>
     <a class="panel-open-btn" id="panelLink" href="#" target="_blank">▶ 유튜브에서 보기</a>
-
-    <!-- AI 요약 (cream block) -->
-    <div class="panel-section">
-      <div class="panel-section-label">AI Summary</div>
-      <div class="summary-block" id="panelSummary"></div>
-    </div>
 
     <!-- 태그 (lime block) -->
     <div class="panel-section">
