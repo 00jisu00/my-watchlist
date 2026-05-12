@@ -914,7 +914,7 @@
   function openPanel(idx) {
     const row = allVideos[idx];
     const url=row[0]||'', title=row[1]||'제목 없음';
-    const thumb=row[2]||'', summary=row[3]||'', date=row[4]||'';
+    const thumb=row[2]||'', date=row[3]||'';
     const vid = extractVideoId(url);
     const img = thumb||(vid?`https://img.youtube.com/vi/${vid}/hqdefault.jpg`:'');
     currentVideoKey = url;
@@ -924,16 +924,6 @@
     document.getElementById('panelTitle').textContent = title;
     document.getElementById('panelDate').textContent = date ? 'YouTube · ' + date : 'YouTube';
     document.getElementById('panelLink').href = url;
-
-    const summaryEl = document.getElementById('panelSummary');
-    if (summary) {
-      const lines = summary.split(/[-·•]\s+/).filter(Boolean);
-      summaryEl.innerHTML = lines.length > 1
-        ? `<ul>${lines.map(l=>`<li>${l.trim()}</li>`).join('')}</ul>`
-        : `<p style="font-family:var(--font-sans);font-size:16px;font-weight:330;line-height:1.8;letter-spacing:-0.14px">${summary}</p>`;
-    } else {
-      summaryEl.innerHTML = `<p class="summary-empty">요약 정보가 없어요</p>`;
-    }
 
     renderPanelTags(saved.tags||[]);
     document.getElementById('memoTextarea').value = saved.memo||'';
@@ -993,7 +983,7 @@
   function setSaved(key, val) { localStorage.setItem('v_'+key, JSON.stringify(val)); }
 
   function extractVideoId(url) {
-    const m = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    const m = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
     return m ? m[1] : null;
   }
 
