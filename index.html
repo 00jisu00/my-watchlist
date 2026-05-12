@@ -425,8 +425,10 @@
     }
 
     .panel-left {
-      width:55%; flex-shrink:0;
-      overflow:hidden;
+      width:40%; flex-shrink:0;
+      display:flex; align-items:center;
+      overflow:hidden; background: #ffffff;
+      padding: var(--spacing-lg);
     }
 
     .panel-right {
@@ -447,9 +449,12 @@
     .panel-close:hover { background: var(--color-hairline); }
 
     .panel-thumb {
-      width:100%; height:100%;
-      object-fit:cover; background: var(--color-surface-soft);
-      display:block; min-height:280px;
+      width:100%;
+      height:auto;
+      object-fit:contain;
+      background: #ffffff;
+      display:block;
+      border-radius: var(--rounded-md);
     }
 
     .panel-body { padding: var(--spacing-xxl); }
