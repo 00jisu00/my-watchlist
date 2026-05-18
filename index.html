@@ -847,11 +847,11 @@
             <div style="display:flex; align-items:flex-start; gap:var(--spacing-xs);">
               <button class="photo-add-btn" onclick="handlePhotoClick()" title="사진 첨부">+</button>
               <textarea class="memo-textarea" id="memoTextarea"
-                        placeholder="이 영상에 대한 생각을 적어보세요..." style="flex:1;"></textarea>
+                        placeholder="이 영상에 대한 생각을 적어보세요..." style="flex:1; min-width:0;"></textarea>
             </div>
             <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="handlePhotoAdd(event)">
             <div id="photoUploading" class="photo-uploading" style="display:none;">📤 업로드 중...</div>
-            <div class="photo-preview-wrap" id="photoPreviewWrap"></div>
+            <div class="photo-preview-wrap" id="photoPreviewWrap" style="padding-left: 40px;"></div>
             <div class="memo-actions">
               <button class="memo-save-btn" onclick="saveMemo()">저장</button>
               <span class="memo-toast" id="memoToast">✓ Saved</span>
