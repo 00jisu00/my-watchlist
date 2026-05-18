@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Watch List</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;320;340;400;480;540;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     /* ── TOKENS ── */
     :root {
@@ -579,6 +580,65 @@
       margin-top: var(--spacing-sm);
     }
 
+    /* 사진 첨부 */
+    .photo-add-btn {
+      width: 32px; height: 32px;
+      background: var(--color-ink); color: var(--color-on-primary);
+      border: none; border-radius: var(--rounded-full);
+      font-size: 18px; font-weight: 300;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: opacity 0.15s;
+      flex-shrink: 0;
+    }
+    .photo-add-btn:hover { opacity: 0.7; }
+
+    .photo-preview-wrap {
+      display: flex; flex-wrap: wrap;
+      gap: var(--spacing-xs);
+      margin-top: var(--spacing-sm);
+    }
+
+    .photo-preview-item {
+      position: relative;
+      width: 80px; height: 80px;
+      border-radius: var(--rounded-md);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .photo-preview-item img {
+      width: 100%; height: 100%;
+      object-fit: cover; cursor: pointer;
+    }
+
+    .photo-remove-btn {
+      position: absolute; top: 3px; right: 3px;
+      width: 18px; height: 18px;
+      background: rgba(0,0,0,0.6); color: #fff;
+      border: none; border-radius: var(--rounded-full);
+      font-size: 11px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+
+    .photo-uploading {
+      font-family: var(--font-mono);
+      font-size: 11px; color: var(--color-ink); opacity: 0.45;
+      margin-top: var(--spacing-xs);
+    }
+
+    /* 구글 드라이브 로그인 버튼 */
+    .drive-login-btn {
+      background: none; border: 1px solid var(--color-hairline);
+      border-radius: var(--rounded-pill);
+      padding: 6px 14px;
+      font-family: var(--font-sans); font-size: 12px;
+      color: var(--color-ink); cursor: pointer;
+      transition: border-color 0.15s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .drive-login-btn:hover { border-color: var(--color-ink); }
+
     .memo-save-btn {
       background: var(--color-primary); color: var(--color-on-primary);
       border:none; border-radius: var(--rounded-pill);
@@ -780,8 +840,17 @@
         <div class="panel-section">
           <div class="panel-section-label">My Notes</div>
           <div class="memo-block">
-            <textarea class="memo-textarea" id="memoTextarea"
-                      placeholder="이 영상에 대한 생각을 적어보세요..."></textarea>
+            <div id="driveLoginWrap" style="margin-bottom:var(--spacing-sm);display:none;">
+              <button class="drive-login-btn" onclick="signInDrive()">🔗 구글 드라이브 연결</button>
+            </div>
+            <div style="display:flex; align-items:flex-start; gap:var(--spacing-xs);">
+              <button class="photo-add-btn" onclick="handlePhotoClick()" title="사진 첨부">+</button>
+              <textarea class="memo-textarea" id="memoTextarea"
+                        placeholder="이 영상에 대한 생각을 적어보세요..." style="flex:1;"></textarea>
+            </div>
+            <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="handlePhotoAdd(event)">
+            <div id="photoUploading" class="photo-uploading" style="display:none;">📤 업로드 중...</div>
+            <div class="photo-preview-wrap" id="photoPreviewWrap"></div>
             <div class="memo-actions">
               <button class="memo-save-btn" onclick="saveMemo()">저장</button>
               <span class="memo-toast" id="memoToast">✓ Saved</span>
@@ -840,7 +909,7 @@
       const res = await fetch(SHEET_CSV_URL + '&t=' + Date.now());
       const text = await res.text();
       const rows = parseCSV(text);
-      allVideos = rows.slice(1).filter(r => r[0] && r[0].trim());
+      allVideos = rows.slice(1).filter(r => r[0] && r[0].trim()).reverse(); // 최신순
       const n = allVideos.length;
       document.getElementById('heroCount').textContent = n + ' videos saved';
       document.getElementById('navCount').textContent = n + ' videos';
@@ -957,6 +1026,9 @@
 
     renderPanelTags(saved.tags||[]);
     document.getElementById('memoTextarea').value = saved.memo||'';
+    currentPhotos = saved.photos ? [...saved.photos] : [];
+    renderPhotoPreview();
+    document.getElementById('driveLoginWrap').style.display = driveAccessToken ? 'none' : 'block';
     document.getElementById('memoToast').classList.remove('show');
     document.getElementById('overlay').classList.add('open');
     document.getElementById('detailPanel').classList.add('open');
@@ -999,9 +1071,118 @@
     renderPanelTags(tags);
   }
 
+  // ── 구글 드라이브 설정 ──
+  // ⚠️ 아래에 본인의 OAuth 클라이언트 ID를 붙여넣으세요!
+  const GOOGLE_CLIENT_ID = '951147575118-0rkmnvgtatvu5kimn90cgqhtahs7ufa3.apps.googleusercontent.com';
+  const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+  let driveAccessToken = null;
+  let currentPhotos = []; // {url, fileId} 형태
+
+  function initGoogleAuth() {
+    google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: (resp) => {
+        if (resp.access_token) {
+          driveAccessToken = resp.access_token;
+          document.getElementById('driveLoginWrap').style.display = 'none';
+        }
+      }
+    });
+  }
+
+  function signInDrive() {
+    google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: (resp) => {
+        if (resp.access_token) {
+          driveAccessToken = resp.access_token;
+          document.getElementById('driveLoginWrap').style.display = 'none';
+          // 로그인 후 바로 파일 선택창 열기
+          document.getElementById('photoInput').click();
+        }
+      }
+    }).requestAccessToken();
+  }
+
+  function handlePhotoClick() {
+    if (!driveAccessToken) {
+      // 드라이브 미연결 시 로그인 먼저
+      document.getElementById('driveLoginWrap').style.display = 'block';
+      signInDrive();
+    } else {
+      document.getElementById('photoInput').click();
+    }
+  }
+
+  async function handlePhotoAdd(event) {
+    const files = Array.from(event.target.files);
+    event.target.value = '';
+    if (!driveAccessToken) { signInDrive(); return; }
+
+    document.getElementById('photoUploading').style.display = 'block';
+
+    for (const file of files) {
+      try {
+        const fileId = await uploadToDrive(file);
+        // 파일 공개 접근 권한 설정
+        await setDrivePublic(fileId);
+        const url = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+        currentPhotos.push({ url, fileId });
+        renderPhotoPreview();
+      } catch(e) {
+        alert('업로드 실패: ' + e.message);
+      }
+    }
+    document.getElementById('photoUploading').style.display = 'none';
+  }
+
+  async function uploadToDrive(file) {
+    const metadata = { name: file.name, mimeType: file.type };
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], {type:'application/json'}));
+    form.append('file', file);
+
+    const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${driveAccessToken}` },
+      body: form
+    });
+    const data = await res.json();
+    if (!data.id) throw new Error('업로드 실패');
+    return data.id;
+  }
+
+  async function setDrivePublic(fileId) {
+    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${driveAccessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+  }
+
+  function renderPhotoPreview() {
+    const wrap = document.getElementById('photoPreviewWrap');
+    if (!wrap) return;
+    wrap.innerHTML = currentPhotos.map((p, idx) => `
+      <div class="photo-preview-item">
+        <img src="${p.url}" alt="첨부사진" onclick="window.open('${p.url}','_blank')">
+        <button class="photo-remove-btn" onclick="removePhoto(${idx})">✕</button>
+      </div>`).join('');
+  }
+
+  function removePhoto(idx) {
+    currentPhotos.splice(idx, 1);
+    renderPhotoPreview();
+  }
+
   function saveMemo() {
     const memo = document.getElementById('memoTextarea').value;
-    setSaved(currentVideoKey, {...getSaved(currentVideoKey), memo});
+    setSaved(currentVideoKey, {...getSaved(currentVideoKey), memo, photos: currentPhotos});
     const toast = document.getElementById('memoToast');
     toast.classList.add('show');
     setTimeout(()=>toast.classList.remove('show'), 2000);
