@@ -593,30 +593,31 @@
     .photo-add-btn:hover { opacity: 0.7; }
 
     .photo-preview-wrap {
-      display: flex; flex-wrap: wrap;
-      gap: var(--spacing-xs);
+      display: flex; flex-direction: column;
+      gap: var(--spacing-sm);
       margin-top: var(--spacing-sm);
     }
 
     .photo-preview-item {
       position: relative;
-      width: 80px; height: 80px;
+      width: 100%;
       border-radius: var(--rounded-md);
       overflow: hidden;
-      flex-shrink: 0;
     }
 
     .photo-preview-item img {
-      width: 100%; height: 100%;
-      object-fit: cover; cursor: pointer;
+      width: 100%; height: auto;
+      object-fit: contain; cursor: pointer;
+      display: block;
+      border-radius: var(--rounded-md);
     }
 
     .photo-remove-btn {
-      position: absolute; top: 3px; right: 3px;
-      width: 18px; height: 18px;
+      position: absolute; top: 8px; right: 8px;
+      width: 24px; height: 24px;
       background: rgba(0,0,0,0.6); color: #fff;
       border: none; border-radius: var(--rounded-full);
-      font-size: 11px; cursor: pointer;
+      font-size: 12px; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       line-height: 1;
     }
@@ -975,7 +976,7 @@
     document.getElementById('content').innerHTML = `<div class="grid-container">${
       list.map((row, i) => {
         const url=row[0]||'', title=row[1]||'제목 없음';
-        const thumb=row[2]||'', date=row[4]||'';
+        const thumb=row[2]||'', date=row[4]||''; // E열 날짜
         const vid = extractVideoId(url);
         const img = thumb||(vid?`https://img.youtube.com/vi/${vid}/hqdefault.jpg`:'');
         const saved = getSaved(url);
@@ -1010,10 +1011,20 @@
     renderCards(allVideos);
   }
 
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    // ISO 형식(2026-05-14T...) 처리
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime()) && dateStr.includes('T')) {
+      return d.toLocaleDateString('ko-KR');
+    }
+    return dateStr; // 이미 한국어 형식이면 그대로
+  }
+
   function openPanel(idx) {
     const row = allVideos[idx];
     const url=row[0]||'', title=row[1]||'제목 없음';
-    const thumb=row[2]||'', date=row[3]||'';
+    const thumb=row[2]||'', date=row[4]||''; // E열 날짜
     const vid = extractVideoId(url);
     const img = thumb||(vid?`https://img.youtube.com/vi/${vid}/hqdefault.jpg`:'');
     currentVideoKey = url;
@@ -1021,13 +1032,17 @@
 
     document.getElementById('panelThumb').src = img;
     document.getElementById('panelTitle').textContent = title;
-    document.getElementById('panelDate').textContent = date ? 'YouTube · ' + date : 'YouTube';
+    document.getElementById('panelDate').textContent = date ? 'YouTube · ' + formatDate(date) : 'YouTube';
     document.getElementById('panelLink').href = url;
 
     renderPanelTags(saved.tags||[]);
     document.getElementById('memoTextarea').value = saved.memo||'';
-    currentPhotos = saved.photos ? [...saved.photos] : [];
+
+    // 구글 시트 D열에서 사진 URL 불러오기
+    currentPhotos = [];
     renderPhotoPreview();
+    loadPhotosFromSheet(url);
+
     document.getElementById('driveLoginWrap').style.display = driveAccessToken ? 'none' : 'block';
     document.getElementById('memoToast').classList.remove('show');
     document.getElementById('overlay').classList.add('open');
@@ -1074,9 +1089,11 @@
   // ── 구글 드라이브 설정 ──
   // ⚠️ 아래에 본인의 OAuth 클라이언트 ID를 붙여넣으세요!
   const GOOGLE_CLIENT_ID = '951147575118-0rkmnvgtatvu5kimn90cgqhtahs7ufa3.apps.googleusercontent.com';
+  // ⚠️ 아래에 본인의 Apps Script 웹앱 URL을 붙여넣으세요!
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx-o-4Uy68oJZYTDtNbu5JrSlVmP2FooS1UzMTMYSTGR5s99G8kudv4EF981bJWbYds1A/exec';
   const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
   let driveAccessToken = null;
-  let currentPhotos = []; // {url, fileId} 형태
+  let currentPhotos = [];
 
   function initGoogleAuth() {
     google.accounts.oauth2.initTokenClient({
@@ -1089,6 +1106,21 @@
         }
       }
     });
+  }
+
+  async function loadPhotosFromSheet(videoUrl) {
+    try {
+      const res = await fetch(`${APPS_SCRIPT_URL}?videoUrl=${encodeURIComponent(videoUrl)}`);
+      const data = await res.json();
+      if (data.photos) {
+        currentPhotos = data.photos.split(',')
+          .filter(u => u.trim())
+          .map(u => ({ url: u.trim(), fileId: '' }));
+        renderPhotoPreview();
+      }
+    } catch(e) {
+      console.log('사진 불러오기 오류:', e);
+    }
   }
 
   function signInDrive() {
@@ -1180,9 +1212,27 @@
     renderPhotoPreview();
   }
 
-  function saveMemo() {
+  async function saveMemo() {
     const memo = document.getElementById('memoTextarea').value;
-    setSaved(currentVideoKey, {...getSaved(currentVideoKey), memo, photos: currentPhotos});
+    // localStorage에 메모 저장
+    setSaved(currentVideoKey, {...getSaved(currentVideoKey), memo});
+
+    // 구글 시트 D열에 사진 URL 저장
+    if (currentPhotos.length > 0) {
+      const photoUrls = currentPhotos.map(p => p.url).join(',');
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({
+            videoUrl: currentVideoKey,
+            photoUrls: photoUrls
+          })
+        });
+      } catch(e) {
+        console.log('사진 저장 오류:', e);
+      }
+    }
+
     const toast = document.getElementById('memoToast');
     toast.classList.add('show');
     setTimeout(()=>toast.classList.remove('show'), 2000);
